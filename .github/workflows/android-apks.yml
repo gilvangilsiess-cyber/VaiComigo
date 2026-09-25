@@ -1,0 +1,54 @@
+name: Gerar APKs VaiComigo
+
+on:
+  push:
+    paths:
+      - '.github/workflows/android-apks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar Android SDK
+        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Preparar projeto
+        run: |
+          unzip -q VaiComigo_3_Apps_Android_Organizado.zip -d fonte
+          cd fonte/VaiComigo_3_Apps_Android_Organizado/PROJETO-FONTE
+          npm ci --prefix mobile
+          npm test
+          npm run sync:android --prefix mobile
+      - name: Compilar APKs
+        run: |
+          projeto=fonte/VaiComigo_3_Apps_Android_Organizado/PROJETO-FONTE
+          mkdir -p apks
+          for app in passageiros motorista administracao; do
+            (cd "$projeto/mobile/$app/android" && chmod +x gradlew && ./gradlew --no-daemon assembleDebug)
+            cp "$projeto/mobile/$app/android/app/build/outputs/apk/debug/app-debug.apk" "apks/VaiComigo-$app.apk"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VaiComigo-Passageiros
+          path: apks/VaiComigo-passageiros.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VaiComigo-Motorista
+          path: apks/VaiComigo-motorista.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VaiComigo-Administracao
+          path: apks/VaiComigo-administracao.apk

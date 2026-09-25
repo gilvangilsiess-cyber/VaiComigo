@@ -37,6 +37,10 @@ jobs:
           npm ci --prefix mobile
           npm test
           npm run sync:android --prefix mobile
+          for app in passageiros motorista administracao; do
+            recursos="mobile/$app/android/app/src/main/res/drawable"
+            cp "$recursos/vai_icon.png" "$recursos/vai_icon_round.png"
+          done
 
       - name: Compilar APKs
         run: |
